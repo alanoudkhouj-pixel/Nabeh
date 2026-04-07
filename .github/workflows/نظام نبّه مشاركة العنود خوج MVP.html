@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تنبيه تقييس الذكي | Smart Taqyees Alert</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'IBM Plex Sans Arabic', sans-serif;
+            background-color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .view-section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+        .view-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+            <button onclick="showView('home')" class="flex items-center gap-2 outline-none">
+                <div class="bg-green-600 p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800">تقييس الذكي</h1>
+            </button>
+            <div id="connection-status" class="text-[10px] sm:text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                متصل بالنظام
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content" class="flex-1 max-w-md mx-auto w-full px-4 py-6">
+        
+        <!-- VIEW: HOME -->
+        <div id="view-home" class="view-section active space-y-6">
+            <!-- Action: Request Location -->
+            <section id="location-prompt" class="bg-white rounded-2xl p-6 shadow-md text-center space-y-4 border border-blue-50">
+                <div class="mx-auto w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-gray-800">تفعيل الوصول للموقع</h2>
+                <p class="text-sm text-gray-500 leading-relaxed">
+                    يرجى تفعيل خاصية الموقع الجغرافي لنقوم بتنبيهك تلقائياً عند الاقتراب من محطات أو متاجر غير مطابقة للمواصفات.
+                </p>
+                <button onclick="simulateLocationSearch()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-blue-100 flex items-center justify-center gap-2">
+                    سماح بالوصول للموقع
+                </button>
+            </section>
+
+            <!-- Status Card -->
+            <section id="status-card" class="hidden bg-white rounded-2xl overflow-hidden shadow-xl border transition-all duration-500">
+                <div id="status-header" class="p-6 text-center space-y-3">
+                    <div id="status-icon" class="mx-auto w-20 h-20 rounded-full flex items-center justify-center text-white mb-2"></div>
+                    <h3 id="status-title" class="text-xl font-bold">جاري الفحص...</h3>
+                    <p id="status-desc" class="text-sm opacity-90 leading-relaxed">يرجى الانتظار لحظات</p>
+                </div>
+                
+                <div id="status-actions" class="hidden p-4 grid grid-cols-2 gap-3 bg-gray-50 border-t">
+                    <button onclick="showView('details')" class="bg-white border border-gray-200 text-gray-700 py-3 rounded-lg text-sm font-semibold hover:bg-gray-100 transition">تحقق من التفاصيل</button>
+                    <button onclick="showView('report')" class="bg-red-50 border border-red-100 text-red-600 py-3 rounded-lg text-sm font-semibold hover:bg-red-100 transition">الإبلاغ عن جهاز</button>
+                </div>
+            </section>
+
+            <!-- Simulated Map -->
+            <section class="bg-white rounded-2xl p-4 shadow-md border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-md font-bold text-gray-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7l5-2.5 5.553 2.776a1 1 0 01.447.894v10.764a1 1 0 01-1.447.894L15 17l-6 3z" />
+                        </svg>
+                        المواقع المحيطة بك
+                    </h2>
+                </div>
+                <div class="relative w-full h-40 bg-slate-100 rounded-xl overflow-hidden border border-gray-200">
+                    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg pulse-animation z-10"></div>
+                    <div class="absolute top-[20%] left-[30%] w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div class="absolute top-[40%] left-[60%] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                    <div class="absolute top-[70%] left-[80%] w-3 h-3 bg-green-500 rounded-full"></div>
+                </div>
+            </section>
+
+            <!-- Info Section -->
+            <section class="bg-gray-800 text-white rounded-2xl p-6 shadow-lg">
+                <h2 class="text-lg font-bold border-b border-gray-700 pb-3 mb-4">كيف يساعدك هذا النظام؟</h2>
+                <div class="space-y-4">
+                    <div class="flex gap-3">
+                        <span class="text-green-400">●</span>
+                        <p class="text-xs text-gray-300">تنبيهات فورية عند التواجد في محطة وقود غير مطابقة.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <span class="text-green-400">●</span>
+                        <p class="text-xs text-gray-300">خرائط تفاعلية توضح جودة الأجهزة في منطقتك.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <span class="text-green-400">●</span>
+                        <p class="text-xs text-gray-300">سهولة الإبلاغ المباشر لوزارة التجارة.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- VIEW: DETAILS -->
+        <div id="view-details" class="view-section space-y-6">
+            <button onclick="showView('home')" class="flex items-center gap-2 text-blue-600 font-medium mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                عودة للرئيسية
+            </button>
+            <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 space-y-6">
+                <h2 class="text-xl font-bold text-gray-800 border-b pb-4">تفاصيل الموقع الحالي</h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between py-2 border-b border-gray-50">
+                        <span class="text-gray-500">اسم المنشأة:</span>
+                        <span id="detail-name" class="font-bold text-gray-800">محطة الرائد لخدمات الوقود</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-50">
+                        <span class="text-gray-500">حالة المطابقة:</span>
+                        <span id="detail-status" class="text-red-600 font-bold">غير مطابق</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-50">
+                        <span class="text-gray-500">آخر فحص:</span>
+                        <span class="text-gray-800">قبل 12 يوم</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-50">
+                        <span class="text-gray-500">نوع المخالفة:</span>
+                        <span class="text-gray-800">عدم معايرة مضخات الوقود</span>
+                    </div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl text-xs text-blue-700 leading-relaxed">
+                    نصيحة: ننصحك باستخدام محطة أخرى قريبة (مثل محطة النور) التي تبعد 200 متر من موقعك الحالي وحاصلة على علامة الجودة.
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: REPORT -->
+        <div id="view-report" class="view-section space-y-6">
+            <button onclick="showView('home')" class="flex items-center gap-2 text-blue-600 font-medium mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                إلغاء الإبلاغ
+            </button>
+            <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">تقديم بلاغ تجاري</h2>
+                <form onsubmit="handleReportSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">نوع الجهاز</label>
+                        <select class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option>مضخة وقود</option>
+                            <option>ميزان ذهب/مجوهرات</option>
+                            <option>ميزان تجاري (خضار/لحوم)</option>
+                            <option>أخرى</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">وصف المشكلة</label>
+                        <textarea rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="مثال: القراءة تظهر وزناً مختلفاً عن الواقع..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">إرفاق صورة (اختياري)</label>
+                        <div class="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center text-gray-400 text-xs">
+                            اسحب الصورة هنا أو اضغط للتحميل
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-red-100">
+                        إرسال البلاغ فوراً
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW: SUCCESS -->
+        <div id="view-success" class="view-section text-center space-y-6 pt-10">
+            <div class="mx-auto w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center shadow-inner">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-2">
+                <h2 class="text-2xl font-bold text-gray-800">تم استلام بلاغك</h2>
+                <p class="text-gray-500">شكراً لمساهمتك في حماية المستهلك. سيتم مراجعة بلاغك من قبل الفريق المختص.</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-gray-100 text-sm text-gray-600">
+                رقم المرجعي للبلاغ: <span class="font-mono font-bold">#TQ-88492</span>
+            </div>
+            <button onclick="showView('home')" class="w-full border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50">
+                العودة للرئيسية
+            </button>
+        </div>
+
+    </main>
+
+    <footer class="p-6 text-center text-gray-400 text-[10px] sm:text-xs mt-auto">
+        <p>© 2024 نظام تقييس الذكي - المبادرة الوطنية لحماية المستهلك</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        let isSimulating = false;
+        let lastResult = 'safe';
+
+        // Navigation Controller
+        function showView(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Show target view
+            const target = document.getElementById('view-' + viewId);
+            if(target) {
+                target.classList.add('active');
+                window.scrollTo(0, 0);
+            }
+
+            // Specific logic for home view reset
+            if(viewId === 'home' && !isSimulating && document.getElementById('status-card').classList.contains('hidden')) {
+                // Keep the prompt visible if no simulation has run
+            }
+        }
+
+        function simulateLocationSearch() {
+            if(isSimulating) return;
+            
+            isSimulating = true;
+            const prompt = document.getElementById('location-prompt');
+            const status = document.getElementById('status-card');
+            
+            prompt.style.display = 'none';
+            status.classList.remove('hidden');
+            updateUIState('loading');
+
+            setTimeout(() => {
+                const isRisky = Math.random() > 0.4; // 60% chance of alert for demo
+                lastResult = isRisky ? 'danger' : 'safe';
+                updateUIState(lastResult);
+                isSimulating = false;
+            }, 2500);
+        }
+
+        function updateUIState(state) {
+            const iconContainer = document.getElementById('status-icon');
+            const title = document.getElementById('status-title');
+            const desc = document.getElementById('status-desc');
+            const card = document.getElementById('status-card');
+            const actions = document.getElementById('status-actions');
+            const header = document.getElementById('status-header');
+
+            if (state === 'loading') {
+                actions.classList.add('hidden');
+                header.className = "p-6 text-center space-y-3 bg-white";
+                card.className = "bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-100 transition-all";
+                iconContainer.className = "mx-auto w-20 h-20 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 mb-2 animate-spin";
+                iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
+                title.innerText = "جاري فحص الموقع...";
+                desc.innerText = "نقوم بالتحقق من جودة الأجهزة المحيطة بك";
+            } 
+            else if (state === 'danger') {
+                actions.classList.remove('hidden');
+                card.className = "bg-white rounded-2xl overflow-hidden shadow-xl border border-red-200 ring-4 ring-red-50 transition-all";
+                header.className = "p-6 text-center space-y-3 bg-red-50";
+                iconContainer.className = "mx-auto w-20 h-20 rounded-full flex items-center justify-center bg-red-600 text-white mb-2 shadow-lg shadow-red-200";
+                iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                title.innerText = "⚠️ تنبيه: الموقع غير مطابق";
+                title.className = "text-xl font-bold text-red-800";
+                desc.innerText = "تحذير! تم رصد أجهزة غير مطابقة للمواصفات في هذا الموقع مؤخراً.";
+                desc.className = "text-sm text-red-600 font-medium";
+                
+                // Update detail page content dynamically
+                document.getElementById('detail-name').innerText = "محطة الواحة - الرياض";
+                document.getElementById('detail-status').innerText = "غير مطابق";
+                document.getElementById('detail-status').className = "text-red-600 font-bold";
+            } 
+            else if (state === 'safe') {
+                actions.classList.remove('hidden');
+                card.className = "bg-white rounded-2xl overflow-hidden shadow-xl border border-green-200 transition-all";
+                header.className = "p-6 text-center space-y-3 bg-green-50";
+                iconContainer.className = "mx-auto w-20 h-20 rounded-full flex items-center justify-center bg-green-600 text-white mb-2 shadow-lg shadow-green-200";
+                iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`;
+                title.innerText = "✅ موقع موثوق";
+                title.className = "text-xl font-bold text-green-800";
+                desc.innerText = "هذا الموقع معتمد وأجهزته مطابقة للمواصفات السعودية.";
+                desc.className = "text-sm text-green-600 font-medium";
+
+                // Update detail page content dynamically
+                document.getElementById('detail-name').innerText = "تموينات البركة - الميزان الذكي";
+                document.getElementById('detail-status').innerText = "مطابق ومعاير";
+                document.getElementById('detail-status').className = "text-green-600 font-bold";
+            }
+        }
+
+        function handleReportSubmit(e) {
+            e.preventDefault();
+            // In a real app, you'd send data to API here
+            showView('success');
+        }
+    </script>
+</body>
+</html>
